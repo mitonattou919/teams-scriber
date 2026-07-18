@@ -78,7 +78,7 @@ async function main(): Promise<void> {
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
   });
   const context = await browser.newContext();
-  await context.grantPermissions(['microphone', 'camera'], { origin: server.url });
+  await context.grantPermissions(['microphone', 'camera'], { origin: new URL(server.url).origin });
   const page = await context.newPage();
 
   page.on('console', (msg) => {
@@ -98,10 +98,8 @@ async function main(): Promise<void> {
     await server.close();
   };
 
-  page.on('console', (msg) => {
-    if (msg.text().includes('call disconnected')) {
-      void shutdown().then(() => process.exit(0));
-    }
+  await page.exposeFunction('__earNotifyDisconnected__', () => {
+    void shutdown().then(() => process.exit(0));
   });
 
   process.on('SIGINT', () => {

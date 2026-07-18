@@ -5,6 +5,7 @@ import type { EarConfig, CaptionMessage } from '../types';
 declare global {
   interface Window {
     __EAR_CONFIG__: EarConfig;
+    __earNotifyDisconnected__?: () => void;
   }
 }
 
@@ -12,13 +13,20 @@ function log(...args: unknown[]): void {
   console.log('[ear:browser]', ...args);
 }
 
-async function connectBrainSocket(wsUrl: string): Promise<WebSocket> {
+function connectBrainSocket(wsUrl: string): WebSocket {
   const ws = new WebSocket(wsUrl);
-  await new Promise<void>((resolve, reject) => {
-    ws.addEventListener('open', () => resolve(), { once: true });
-    ws.addEventListener('error', () => reject(new Error('failed to connect to brain WebSocket')), { once: true });
-  });
+  ws.addEventListener('open', () => log('connected to brain WebSocket'));
+  ws.addEventListener('error', () => log('brain WebSocket error'));
+  ws.addEventListener('close', () => log('brain WebSocket closed'));
   return ws;
+}
+
+function sendCaption(ws: WebSocket, message: CaptionMessage): void {
+  if (ws.readyState !== WebSocket.OPEN) {
+    log('brain WebSocket not open, dropping caption:', message.text);
+    return;
+  }
+  ws.send(JSON.stringify(message));
 }
 
 async function startCaptions(call: Call, ws: WebSocket): Promise<void> {
@@ -43,7 +51,7 @@ async function startCaptions(call: Call, ws: WebSocket): Promise<void> {
       timestamp: data.timestamp.toISOString(),
     };
     log('caption:', message.speaker, message.text, message.resultType, message.timestamp);
-    ws.send(JSON.stringify(message));
+    sendCaption(ws, message);
   });
 
   await teamsCaptions.startCaptions({ spokenLanguage: 'ja-jp' });
@@ -53,8 +61,9 @@ async function startCaptions(call: Call, ws: WebSocket): Promise<void> {
 async function main(): Promise<void> {
   const config = window.__EAR_CONFIG__;
 
-  const ws = await connectBrainSocket(config.wsUrl);
-  log('connected to brain WebSocket');
+  // 脳のWebSocketサーバーが未起動でも会議参加・キャプション取得は続行できるよう、
+  // 接続はブロッキングにせずバックグラウンドで行う。
+  const ws = connectBrainSocket(config.wsUrl);
 
   const tokenCredential = new AzureCommunicationTokenCredential(config.token);
   const callClient = new CallClient();
@@ -64,13 +73,16 @@ async function main(): Promise<void> {
 
   const call = callAgent.join({ meetingLink: config.meetingLink }, { audioOptions: { muted: true } });
 
+  let captionsStarted = false;
   call.on('stateChanged', () => {
     log('call state:', call.state);
-    if (call.state === 'Connected') {
+    if (call.state === 'Connected' && !captionsStarted) {
+      captionsStarted = true;
       startCaptions(call, ws).catch((error) => log('failed to start captions:', error));
     }
     if (call.state === 'Disconnected') {
       log('call disconnected');
+      window.__earNotifyDisconnected__?.();
     }
   });
 }
