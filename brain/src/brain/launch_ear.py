@@ -14,6 +14,8 @@ from pathlib import Path
 
 from brain.identity import issue_user_and_token
 
+# brain/src/brain/launch_ear.py からリポジトリルートまで3階層上。
+# editable install (src layout) を前提としており、インストール方式を変えると崩れる。
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EAR_DIR = REPO_ROOT / "ear"
 
@@ -42,12 +44,12 @@ def main() -> None:
         [
             "node",
             args.ear_entry,
-            "--token", identity.token,
             "--meeting-link", args.meeting_link,
             "--ws-url", args.ws_url,
         ],
         check=True,
         cwd=EAR_DIR,
+        env={**os.environ, "ACS_TOKEN": identity.token},
     )
 
 
