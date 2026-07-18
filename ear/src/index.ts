@@ -13,7 +13,7 @@ const STATIC_FILES: Record<string, { file: string; contentType: string }> = {
   '/browser-bundle.js': { file: 'browser-bundle.js', contentType: 'text/javascript; charset=utf-8' },
 };
 
-function parseArgs(argv: string[]): EarConfig {
+function parseArgs(argv: string[]): Omit<EarConfig, 'token'> {
   const args = new Map<string, string>();
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -28,15 +28,14 @@ function parseArgs(argv: string[]): EarConfig {
     }
   }
 
-  const token = args.get('token');
   const meetingLink = args.get('meeting-link');
   const wsUrl = args.get('ws-url');
-  if (!token || !meetingLink || !wsUrl) {
+  if (!meetingLink || !wsUrl) {
     throw new Error(
-      'usage: node dist/index.js --token <acsToken> --meeting-link <teamsMeetingUrl> --ws-url <ws://host:port>',
+      'usage: ACS_TOKEN=<acsToken> node dist/index.js --meeting-link <teamsMeetingUrl> --ws-url <ws://host:port>',
     );
   }
-  return { token, meetingLink, wsUrl };
+  return { meetingLink, wsUrl };
 }
 
 async function startStaticServer(): Promise<{ url: string; close: () => Promise<void> }> {
@@ -67,7 +66,12 @@ async function startStaticServer(): Promise<{ url: string; close: () => Promise<
 }
 
 async function main(): Promise<void> {
-  const config = parseArgs(process.argv.slice(2));
+  const { meetingLink, wsUrl } = parseArgs(process.argv.slice(2));
+  const token = process.env.ACS_TOKEN;
+  if (!token) {
+    throw new Error('ACS_TOKEN environment variable is required');
+  }
+  const config: EarConfig = { token, meetingLink, wsUrl };
   const server = await startStaticServer();
 
   const browser = await chromium.launch({
