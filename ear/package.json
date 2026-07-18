@@ -1,0 +1,22 @@
+{
+  "name": "ear",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Teams meeting caption listener (Playwright + ACS Calling SDK)",
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.config.js",
+    "typecheck": "tsc --noEmit",
+    "start": "npm run build && node dist/index.js"
+  },
+  "dependencies": {
+    "@azure/communication-calling": "^1.36.1",
+    "@azure/communication-common": "^2.3.1",
+    "playwright": "^1.48.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  }
+}
