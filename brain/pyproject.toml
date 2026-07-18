@@ -1,0 +1,20 @@
+[project]
+name = "brain"
+version = "0.1.0"
+description = "Teams会議AIファシリテーターボットの「脳」— ACSアイデンティティ発行・キャプション判定・チャット投稿"
+readme = "README.md"
+authors = [
+    { name = "mitonattou919", email = "57037896+mitonattou919@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "azure-communication-identity>=1.5.0",
+]
+
+[project.scripts]
+issue-acs-token = "brain.identity:main"
+launch-ear = "brain.launch_ear:main"
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
