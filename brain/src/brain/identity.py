@@ -16,6 +16,7 @@ from azure.communication.identity import (
     CommunicationIdentityClient,
     CommunicationTokenScope,
 )
+from dotenv import load_dotenv, find_dotenv
 
 
 @dataclass(frozen=True)
@@ -33,11 +34,13 @@ def issue_user_and_token(connection_string: str) -> IssuedIdentity:
     return IssuedIdentity(
         user_id=user.properties["id"],
         token=token_response.token,
-        expires_on=token_response.expires_on.isoformat(),
+        expires_on=token_response.expires_on,
     )
 
 
 def main() -> None:
+    load_dotenv(find_dotenv())
+
     connection_string = os.environ.get("ACS_CONNECTION_STRING")
     if not connection_string:
         sys.exit("ACS_CONNECTION_STRING が設定されていません")

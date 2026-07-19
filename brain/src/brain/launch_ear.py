@@ -12,6 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv, find_dotenv
+
 from brain.identity import issue_user_and_token
 
 # brain/src/brain/launch_ear.py からリポジトリルートまで3階層上。
@@ -21,6 +23,8 @@ EAR_DIR = REPO_ROOT / "ear"
 
 
 def main() -> None:
+    load_dotenv(find_dotenv())
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--meeting-link", default=os.environ.get("TEAMS_MEETING_LINK"))
     parser.add_argument("--ws-url", default="ws://localhost:8765")

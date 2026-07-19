@@ -54,13 +54,13 @@ async function startStaticServer(): Promise<{ url: string; close: () => Promise<
       });
   });
 
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, 'localhost', resolve));
   const address = server.address();
   if (address === null || typeof address === 'string') {
     throw new Error('failed to determine static server address');
   }
   return {
-    url: `http://127.0.0.1:${address.port}/`,
+    url: `http://localhost:${address.port}/`,
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };
 }
