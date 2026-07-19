@@ -34,7 +34,7 @@ def issue_user_and_token(connection_string: str) -> IssuedIdentity:
     return IssuedIdentity(
         user_id=user.properties["id"],
         token=token_response.token,
-        expires_on=token_response.expires_on.isoformat(),
+        expires_on=token_response.expires_on,
     )
 
 

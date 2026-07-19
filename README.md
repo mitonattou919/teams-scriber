@@ -61,6 +61,7 @@ INTERVENE_INTERVAL_SEC=180
 
 ## 動作確認ログ
 
-- 基盤(ACSユーザー作成・トークン発行): `brain/` の `issue-acs-token` で発行したトークンが `ear/` の会議参加・キャプション取得に使えることを確認予定(実機ACSリソースでの確認待ち)
-- フェーズ1(耳単体): 実機ACSリソース・テスト会議での確認待ち。`ear/dist/index.js` はダミー引数でPlaywright起動・静的サーバー配信・ブラウザ側スクリプト実行・WebSocket接続試行までは動作確認済み
-- フェーズ2(脳): 未着手
+- 基盤(ACSユーザー作成・トークン発行): 実機ACSリソースで確認済み(2026-07-19)。`issue-acs-token` でvoip+chatスコープのトークン発行に成功
+- フェーズ1(耳単体・実機疎通): 実機ACSリソース・テスト用Teams会議で確認済み(2026-07-19)。`brain/` の `launch-ear` でトークン発行 → `ear/` が会議にロビー承認経由で参加 → `startCaptions` → 発話者名・タイムスタンプ付きキャプション(短文・長文とも)を `Final` 判定でコンソールに送出、まで一連の流れを確認
+  - 確認中に見つかった不具合を修正: `brain/src/brain/identity.py` の `expires_on` が `azure-communication-identity==1.5.0` では既に `str` (ISO 8601) で返るため `.isoformat()` 呼び出しで例外になっていた点/`ear/src/index.ts` の静的サーバーが `127.0.0.1` でlistenしており、ACS Web Calling SDKが要求する `https:` / `file:` / `localhost` originの制約に違反して `CallClient` 生成時に失敗していた点(`localhost` に変更)
+- フェーズ2(脳): 未着手。今回の確認で脳のWebSocketサーバー(:8765)が未実装なため、耳側で `brain WebSocket not open, dropping caption` が出ることを確認(想定通り)
