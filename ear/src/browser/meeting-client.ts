@@ -1,6 +1,6 @@
 import { CallClient, Features, type Call, type TeamsCaptions } from '@azure/communication-calling';
 import { AzureCommunicationTokenCredential } from '@azure/communication-common';
-import type { EarConfig, CaptionMessage } from '../types';
+import type { EarConfig, EarMessage } from '../types';
 
 declare global {
   interface Window {
@@ -21,12 +21,23 @@ function connectBrainSocket(wsUrl: string): WebSocket {
   return ws;
 }
 
-function sendCaption(ws: WebSocket, message: CaptionMessage): void {
+function send(ws: WebSocket, message: EarMessage): void {
   if (ws.readyState !== WebSocket.OPEN) {
-    log('brain WebSocket not open, dropping caption:', message.text);
+    log('brain WebSocket not open, dropping message:', message);
     return;
   }
   ws.send(JSON.stringify(message));
+}
+
+// call切断直後にブラウザごと終了するため、送信データがまだソケットの送信
+// バッファに残っている(ネットワークに乗り切っていない)うちにプロセスが
+// 落ちるとcall_ended通知が脳に届かない。bufferedAmountが捌けるのを待ってから戻る。
+async function sendAndFlush(ws: WebSocket, message: EarMessage, timeoutMs = 2000): Promise<void> {
+  send(ws, message);
+  const start = Date.now();
+  while (ws.bufferedAmount > 0 && Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
 }
 
 async function startCaptions(call: Call, ws: WebSocket): Promise<void> {
@@ -44,14 +55,15 @@ async function startCaptions(call: Call, ws: WebSocket): Promise<void> {
     if (data.resultType !== 'Final') {
       return;
     }
-    const message: CaptionMessage = {
+    const message: EarMessage = {
+      type: 'caption',
       speaker: data.speaker.displayName ?? '(unknown)',
       text: data.spokenText,
       resultType: data.resultType,
       timestamp: data.timestamp.toISOString(),
     };
     log('caption:', message.speaker, message.text, message.resultType, message.timestamp);
-    sendCaption(ws, message);
+    send(ws, message);
   });
 
   await teamsCaptions.startCaptions({ spokenLanguage: 'ja-jp' });
@@ -82,7 +94,9 @@ async function main(): Promise<void> {
     }
     if (call.state === 'Disconnected') {
       log('call disconnected');
-      window.__earNotifyDisconnected__?.();
+      void sendAndFlush(ws, { type: 'call_ended', timestamp: new Date().toISOString() }).finally(() => {
+        window.__earNotifyDisconnected__?.();
+      });
     }
   });
 }

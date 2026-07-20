@@ -52,6 +52,20 @@ class CaptionLog:
             f.write(json.dumps(asdict(caption), ensure_ascii=False))
             f.write("\n")
 
+    def read_all(self) -> list[Caption]:
+        """会議終了時の議事録生成の入力として、保存済みの全文ログを読み込む。"""
+        if not self._path.exists():
+            return []
+        captions = []
+        with self._path.open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                data = json.loads(line)
+                captions.append(Caption(**data))
+        return captions
+
 
 def build_caption_handler(
     buffer: CaptionBuffer, log: CaptionLog
