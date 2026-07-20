@@ -49,13 +49,25 @@ node dist/index.js \
 - 参加前のチャット履歴は読めない。会議終了後は送受信不可
 - 翻訳キャプション(Teams Premium機能)は使わない。`spokenLanguage: 'ja-jp'` の生キャプションのみを扱う
 
+## 議事録の自動生成(`caption-server`)
+
+`brain/` の `caption-server` はキャプションをWSで受信して `--log-path`(デフォルト `captions.jsonl`)にJSONL保存しつつ、耳からの `call_ended` 通知(call切断時に自動送信される)を受け取ると、ログ全文をLLMに渡して議事録を生成し `--minutes-dir`(デフォルト `minutes/`)配下に `<meeting_id>.md` / `<meeting_id>.json` として保存する。LLM呼び出しには `AZURE_OPENAI_*`(デフォルト)または `ANTHROPIC_API_KEY` の環境変数が必要。
+
+```sh
+cd brain
+uv run caption-server --log-path captions.jsonl --minutes-dir minutes
+```
+
 ## 環境変数
 
 ```
-ACS_CONNECTION_STRING=   # ACSリソースの接続文字列(脳が使用)
-TEAMS_MEETING_LINK=      # テスト対象の会議リンク
-LLM_PROVIDER=anthropic   # anthropic | azure_openai
-ANTHROPIC_API_KEY=       # または AZURE_OPENAI_* 一式
+ACS_CONNECTION_STRING=     # ACSリソースの接続文字列(脳が使用)
+TEAMS_MEETING_LINK=        # テスト対象の会議リンク
+LLM_PROVIDER=azure_openai  # azure_openai | anthropic (議事録生成に使用、デフォルトはAzure OpenAI)
+AZURE_OPENAI_ENDPOINT=     # Azure AI Foundryのエンドポイント
+AZURE_OPENAI_API_KEY=      # Azure AI FoundryのAPIキー
+AZURE_OPENAI_MODEL=gpt-5.5-mini
+ANTHROPIC_API_KEY=         # LLM_PROVIDER=anthropic のときのみ使用
 INTERVENE_INTERVAL_SEC=180
 ```
 
